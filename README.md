@@ -89,6 +89,33 @@ The project is architected around a central context provider that manages the st
     - **Drag & Drop**: The `DndProvider` wraps the calendar to enable drag-and-drop functionality for events. When an event is moved, the context updates the event's start and end times.
     - **Event Management**: Functions like `addEvent`, `updateEvent`, and `removeEvent` in the context handle CRUD operations, ensuring the UI stays in sync with the data.
 
+## Running Locally
+
+To run the project locally, follow these steps:
+
+1.  **Clone the repository**:
+
+    ```bash
+    git clone https://github.com/yassir-jeraidi/full-calendar.git
+    cd full-calendar
+    ```
+
+2.  **Install dependencies**:
+
+    ```bash
+    pnpm install
+    ```
+
+3.  **Start the development server**:
+
+    ```bash
+    pnpm dev
+    ```
+
+4.  **Open the application**:
+
+    Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
+
 ## Contributing
 
 1. Fork the repository
