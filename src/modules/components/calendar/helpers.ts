@@ -24,6 +24,7 @@ import {
 	subMonths,
 	subWeeks,
 	subYears,
+	subHours,
 } from "date-fns";
 import { useCalendar } from "@/modules/components/calendar/contexts/calendar-context";
 import type {
@@ -438,4 +439,13 @@ export const useGetEventsByMode = (events: IEvent[]) => {
 export const toCapitalize = (str: string): string => {
 	if (!str) return "";
 	return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+/**
+ * Subtracts the given number of hours from a date and returns a new Date.
+ * Centralized here so other modules import from the calendar helpers.
+ */
+export const subtractHours = (date: Date | string, hours: number): Date => {
+ 	const d = typeof date === "string" ? parseISO(date) : date;
+ 	return subHours(d, hours);
 };

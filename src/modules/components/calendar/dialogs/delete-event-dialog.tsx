@@ -19,18 +19,30 @@ interface DeleteEventDialogProps {
 }
 
 export default function DeleteEventDialog({ eventId }: DeleteEventDialogProps) {
-	const { removeEvent } = useCalendar();
+	const { removeEvent, removeTask, tasks, events } = useCalendar();
 
-	const deleteEvent = () => {
+	const handleDelete = () => {
+		// Treat only null/undefined as missing — allow id 0 to be valid
+		if (eventId == null) return;
+
+		// Prefer deleting a task if the id exists in tasks, otherwise delete an event.
+		const isTask = tasks.some((t) => t.id === eventId);
 		try {
-			removeEvent(eventId);
-			toast.success("Event deleted successfully.");
-		} catch {
-			toast.error("Error deleting event.");
+			if (isTask) {
+				removeTask(eventId);
+				toast.success("Task deleted successfully.");
+			} else {
+				removeEvent(eventId);
+				toast.success("Event deleted successfully.");
+			}
+		} catch (err) {
+			console.error("Error deleting item:", err);
+			toast.error("Error deleting item.");
 		}
 	};
 
-	if (!eventId) {
+	// Allow id=0 — only bail out when eventId is null or undefined
+	if (eventId == null) {
 		return null;
 	}
 
@@ -52,7 +64,7 @@ export default function DeleteEventDialog({ eventId }: DeleteEventDialogProps) {
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
-					<AlertDialogAction onClick={deleteEvent}>Continue</AlertDialogAction>
+					<AlertDialogAction onClick={handleDelete}>Continue</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>
 		</AlertDialog>

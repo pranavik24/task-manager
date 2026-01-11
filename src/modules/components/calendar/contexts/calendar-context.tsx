@@ -1,13 +1,15 @@
 "use client";
 
 import type React from "react";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useMemo } from "react";
+import { addHours, subHours } from "date-fns";
 import { useLocalStorage } from "@/modules/components/calendar/hooks";
-import type { IEvent, IUser } from "@/modules/components/calendar/interfaces";
+import type { IEvent, IUser, ITask } from "@/modules/components/calendar/interfaces";
 import type {
 	TCalendarView,
 	TEventColor,
 } from "@/modules/components/calendar/types";
+import { subtractHours } from "../helpers";
 
 interface ICalendarContext {
 	selectedDate: Date;
@@ -27,10 +29,15 @@ interface ICalendarContext {
 	filterEventsBySelectedUser: (userId: IUser["id"] | "all") => void;
 	users: IUser[];
 	events: IEvent[];
+	tasks: ITask[];
 	addEvent: (event: IEvent) => void;
 	updateEvent: (event: IEvent) => void;
 	removeEvent: (eventId: number) => void;
 	clearFilter: () => void;
+	addTask: (task: ITask) => void;
+	updateTask: (task: ITask) => void;
+	removeTask: (taskId: number) => void;
+
 }
 
 interface CalendarSettings {
@@ -92,6 +99,9 @@ export function CalendarProvider({
 
 	const [allEvents, setAllEvents] = useState<IEvent[]>(events || []);
 	const [filteredEvents, setFilteredEvents] = useState<IEvent[]>(events || []);
+
+	const [allTasks, setAllTasks] = useState<ITask[]>([]);
+	const [filteredTasks, setFilteredTasks] = useState<ITask[]>([]);
 
 	const updateSettings = (newPartialSettings: Partial<CalendarSettings>) => {
 		setSettings({
@@ -178,11 +188,96 @@ export function CalendarProvider({
 		setFilteredEvents((prev) => prev.filter((e) => e.id !== eventId));
 	};
 
+	const addTask = (task: ITask) => {
+		// Find the latest free 1-hour slot that ENDS BEFORE the requested dueDate.
+		// We scan backwards hour-by-hour from the requested time (rounded to hour)
+		// up to a MAX_ITER limit (one week by default).
+		const requested = new Date(task.dueDate);
+
+		// normalize to the start of the hour
+		let candidate = new Date(requested);
+		candidate.setMinutes(0, 0, 0);
+
+		// ensure the candidate hour ends before or at the requested due date
+		if (addHours(candidate, 1) > requested) {
+			candidate = subHours(candidate, 1);
+		}
+
+		const MAX_ITER = 24 * 7; // search up to one week backwards
+		let iter = 0;
+
+		const overlaps = (start: Date, end: Date) => {
+			// check against events
+			for (const e of allEvents) {
+				const es = new Date(e.startDate);
+				const ee = new Date(e.endDate);
+				if (start < ee && es < end) return true;
+			}
+			// check against existing tasks (1-hour slots)
+			for (const t of allTasks) {
+				const ts = new Date(t.dueDate);
+				const te = addHours(new Date(t.dueDate), 1);
+				if (start < te && ts < end) return true;
+			}
+			return false;
+		};
+
+		while (iter < MAX_ITER) {
+			const candidateEnd = addHours(candidate, 1);
+			if (!overlaps(candidate, candidateEnd)) break;
+			candidate = subHours(candidate, 1);
+			iter += 1;
+		}
+
+		const taskToAdd: ITask = {
+			...task,
+			dueDate: candidate.toISOString(),
+		};
+
+		setAllTasks((prev) => [...prev, taskToAdd]);
+		setFilteredTasks((prev) => [...prev, taskToAdd]);
+	};
+
+	const updateTask = (task: ITask) => {
+		const updated = {
+			...task,
+			dueDate: new Date(task.dueDate).toISOString(),
+		};
+
+		setAllTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+		setFilteredTasks((prev) =>
+			prev.map((t) => (t.id === task.id ? updated : t)),
+		);
+	};
+
+	const removeTask = (taskId: number) => {
+		setAllTasks((prev) => prev.filter((t) => t.id !== taskId));
+		setFilteredTasks((prev) => prev.filter((t) => t.id !== taskId));
+	};	
+
 	const clearFilter = () => {
 		setFilteredEvents(allEvents);
 		setSelectedColors([]);
 		setSelectedUserId("all");
 	};
+
+	// Merge tasks into the events list so the calendar UI (which consumes `events`)
+	// shows tasks as 1-hour blocks at their dueDate. Tasks remain separately
+	// available via `tasks` on the context for other UI.
+	const mergedEvents = useMemo(() => {
+		const taskAsEvents: IEvent[] = filteredTasks.map((t) => ({
+			id: t.id,
+			startDate: new Date(t.dueDate).toISOString(),
+			endDate: addHours(new Date(t.dueDate), 1).toISOString(),
+			title: t.title,
+			location: t.location,
+			color: t.color,
+			description: t.description,
+			user: t.user,
+		}));
+
+		return [...filteredEvents, ...taskAsEvents];
+	}, [filteredEvents, filteredTasks]);
 
 	const value = {
 		selectedDate,
@@ -195,7 +290,11 @@ export function CalendarProvider({
 		selectedColors,
 		filterEventsBySelectedColors,
 		filterEventsBySelectedUser,
-		events: filteredEvents,
+		events: mergedEvents,
+		tasks: filteredTasks,
+		addTask,
+		updateTask,
+		removeTask,
 		view: currentView,
 		use24HourFormat,
 		toggleTimeFormat,

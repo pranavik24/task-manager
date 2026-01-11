@@ -11,6 +11,17 @@ export interface IEvent {
 	startDate: string;
 	endDate: string;
 	title: string;
+	location: string;
+	color: TEventColor;
+	description: string;
+	user: IUser;
+}
+
+export interface ITask {
+	id: number;
+	dueDate: string;
+	title: string;
+	location: string;
 	color: TEventColor;
 	description: string;
 	user: IUser;

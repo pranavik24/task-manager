@@ -20,6 +20,7 @@ import {
 } from "@/modules/components/calendar/animations";
 import { useCalendar } from "@/modules/components/calendar/contexts/calendar-context";
 import { AddEditEventDialog } from "@/modules/components/calendar/dialogs/add-edit-event-dialog";
+import { AddEditTaskDialog } from "@/modules/components/calendar/dialogs/add-edit-event-dialog";
 import { DateNavigator } from "@/modules/components/calendar/header/date-navigator";
 import FilterEvents from "@/modules/components/calendar/header/filter";
 import { TodayButton } from "@/modules/components/calendar/header/today-button";
@@ -56,14 +57,19 @@ export function CalendarHeader() {
 				</div>
 
 				<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-1.5">
-					<UserSelect />
-
 					<AddEditEventDialog>
 						<Button>
 							<Plus className="h-4 w-4" />
 							Add Event
 						</Button>
 					</AddEditEventDialog>
+
+					<AddEditTaskDialog>
+						<Button>
+							<Plus className="h-4 w-4" />
+							Add Task
+						</Button>
+					</AddEditTaskDialog>
 				</div>
 				<Settings />
 			</motion.div>

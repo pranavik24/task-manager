@@ -1,4 +1,5 @@
-# Full Calendar
+# Octomind Calender
+
 
 A feature-rich calendar application built with React, TypeScript, and ShadCN UI components. This project provides a customizable and interactive calendar experience with multiple views, event management, and a modern UI.
 

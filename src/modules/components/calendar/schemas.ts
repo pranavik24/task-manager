@@ -14,4 +14,11 @@ export const eventSchema = z.object({
 	}),
 });
 
+const taskSchema = eventSchema.extend({
+	dueDate: z.date({
+		required_error: "Due date is required",
+	}),
+});
+
 export type TEventFormData = z.infer<typeof eventSchema>;
+export type TTaskFormData = z.infer<typeof taskSchema>;

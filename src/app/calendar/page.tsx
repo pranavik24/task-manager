@@ -15,8 +15,8 @@ export default function CalendarPage() {
 								<CalendarIcon className="size-6 text-t-secondary" />
 							</div>
 							<div className="space-y-1">
-								<p className="text-lg font-medium leading-6">Full calendar</p>
-								<div className="text-sm text-t-secondary">
+								<p className="text-lg font-medium leading-6"> Octomind Calendar </p>
+								{/* <div className="text-sm text-t-secondary">
 									Built with Next.js and Shadcn UI/Tailwind css by{" "}
 									<Link
 										href="https://github.com/yassir-jeraidi"
@@ -36,11 +36,11 @@ export default function CalendarPage() {
 											<LinkIcon size={12} className="mx-1 text-t-tertiary" />
 										</div>
 									</Link>
-								</div>
+								</div> */}
 							</div>
 						</div>
 					</div>
-					<div>
+					{/* <div>
 						<Link
 							href="https://github.com/yassir-jeraidi/full-calendar"
 							className="flex justify-center items-center gap-2 underline"
@@ -48,7 +48,7 @@ export default function CalendarPage() {
 							<span className="hidden md:block">View on Github</span>
 							<GithubIcon className="h-6 w-6 md:w-4 md:h-4" />
 						</Link>
-					</div>
+					</div> */}
 				</div>
 				<Suspense fallback={<CalendarSkeleton />}>
 					<Calendar />
