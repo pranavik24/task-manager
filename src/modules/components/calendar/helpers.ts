@@ -81,11 +81,11 @@ export function estimateTaskDurationHours(
 	let score = 1;
 
 	// Base complexity from amount of detail.
-	if (titleWords.length >= 3) score += 0.5;
-	if (descriptionWords.length >= 8) score += 0.5;
-	if (descriptionWords.length >= 20) score += 0.5;
-	if (words.length >= 35) score += 0.5;
-	if ((combined.match(/[,;]| and | then | after /g) || []).length >= 2) score += 0.5;
+	if (titleWords.length >= 4) score += 0.25;
+	if (descriptionWords.length >= 10) score += 0.25;
+	if (descriptionWords.length >= 24) score += 0.5;
+	if (words.length >= 40) score += 0.25;
+	if ((combined.match(/[,;]| and | then | after /g) || []).length >= 3) score += 0.25;
 
 	// Small, quick actions.
 	if (
@@ -96,23 +96,28 @@ export function estimateTaskDurationHours(
 		score -= 0.5;
 	}
 
-	// Medium-complexity execution work.
-	if (
-		/\b(write|draft|plan|prepare|research|analyze|document|presentation)\b/.test(
-			combined,
-		)
-	) {
-		score += 1;
+	// Very short/simple entries should bias lower.
+	if (titleWords.length <= 2 && descriptionWords.length === 0) {
+		score -= 0.25;
 	}
 
+	// Medium-complexity execution work.
+		if (
+			/\b(write|draft|plan|prepare|research|analyze|document|presentation)\b/.test(
+				combined,
+			)
+		) {
+			score += 0.75;
+		}
+
 	// Usually bigger delivery work.
-	if (
-		/\b(build|implement|develop|feature|integration|migrate|refactor|architecture|prototype|debug)\b/.test(
-			combined,
-		)
-	) {
-		score += 2;
-	}
+		if (
+			/\b(build|implement|develop|feature|integration|migrate|refactor|architecture|prototype|debug)\b/.test(
+				combined,
+			)
+		) {
+			score += 1.5;
+		}
 
 	// Extra complexity signals.
 	if (/\bmultiple|complex|deep|detailed|end-to-end|full\b/.test(combined)) {
@@ -125,25 +130,25 @@ export function estimateTaskDurationHours(
 			combined,
 		)
 	) {
-		score += 1;
+		score += 0.5;
 	}
 
-	if (
-		/\b(quiz|test|exam|midterm|final|ap exam|sat|act|study|revision|review notes|practice test|retake|unit test|chapter test|benchmark|state test|regents|psat|practice questions|review packet|memorize)\b/.test(
-			combined,
-		)
-	) {
-		score += 1.5;
-	}
+		if (
+			/\b(quiz|test|exam|midterm|final|ap exam|sat|act|study|revision|review notes|practice test|retake|unit test|chapter test|benchmark|state test|regents|psat|practice questions|review packet|memorize)\b/.test(
+				combined,
+			)
+		) {
+			score += 1;
+		}
 
 	// Applications and longer-form writing are usually larger chunks.
-	if (
-		/\b(college application|common app|personal statement|scholarship|essay draft|portfolio|supplemental essay|activities list|resume|brag sheet|recommendation letter|letter of recommendation|fafsa)\b/.test(
-			combined,
-		)
-	) {
-		score += 2;
-	}
+		if (
+			/\b(college application|common app|personal statement|scholarship|essay draft|portfolio|supplemental essay|activities list|resume|brag sheet|recommendation letter|letter of recommendation|fafsa)\b/.test(
+				combined,
+			)
+		) {
+			score += 1.5;
+		}
 
 	// Typical quick school admin tasks.
 	if (
@@ -160,13 +165,13 @@ export function estimateTaskDurationHours(
 	}
 
 	// Extracurricular practices/games tend to be fixed-time blocks.
-	if (
-		/\b(practice|rehearsal|tryout|game|match|tournament|meet|training|film study|weight room|conditioning|scrimmage|warm up|band practice|orchestra practice|choir rehearsal|drama rehearsal|debate prep|mock trial|robotics build|yearbook meeting)\b/.test(
-			combined,
-		)
-	) {
-		score += 1;
-	}
+		if (
+			/\b(practice|rehearsal|tryout|game|match|tournament|meet|training|film study|weight room|conditioning|scrimmage|warm up|band practice|orchestra practice|choir rehearsal|drama rehearsal|debate prep|mock trial|robotics build|yearbook meeting)\b/.test(
+				combined,
+			)
+		) {
+			score += 0.75;
+		}
 
 	// School support/planning tasks.
 	if (
@@ -178,13 +183,13 @@ export function estimateTaskDurationHours(
 	}
 
 	// Creative/tech assignments often need focused blocks.
-	if (
-		/\b(video edit|edit video|recording|podcast|coding project|science fair|lab setup|build prototype|art piece|music composition)\b/.test(
-			combined,
-		)
-	) {
-		score += 1.25;
-	}
+		if (
+			/\b(video edit|edit video|recording|podcast|coding project|science fair|lab setup|build prototype|art piece|music composition)\b/.test(
+				combined,
+			)
+		) {
+			score += 1;
+		}
 
 	return normalizeTaskDurationHours(score);
 }
