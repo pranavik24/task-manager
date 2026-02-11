@@ -1,13 +1,10 @@
 import {
 	CheckIcon,
 	DotIcon,
-	MoonIcon,
 	PaletteIcon,
 	SettingsIcon,
-	SunMediumIcon,
 	XIcon,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -38,9 +35,6 @@ export function Settings() {
 		setAgendaModeGroupBy,
 	} = useCalendar();
 	const { showConfirmation, setShowConfirmation } = useDragDrop();
-	const { theme, setTheme } = useTheme();
-
-	const isDarkMode = theme === "dark";
 	const isDotVariant = badgeVariant === "dot";
 
 	return (
@@ -54,24 +48,6 @@ export function Settings() {
 				<DropdownMenuLabel>Calendar settings</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
-					<DropdownMenuItem>
-						Use dark mode
-						<DropdownMenuShortcut>
-							<Switch
-								icon={
-									isDarkMode ? (
-										<MoonIcon className="h-4 w-4" />
-									) : (
-										<SunMediumIcon className="h-4 w-4" />
-									)
-								}
-								checked={isDarkMode}
-								onCheckedChange={(checked) =>
-									setTheme(checked ? "dark" : "light")
-								}
-							/>
-						</DropdownMenuShortcut>
-					</DropdownMenuItem>
 					<DropdownMenuItem>
 						Show confirmation dialog on event drop
 						<DropdownMenuShortcut>
