@@ -10,8 +10,8 @@ To run the project locally, follow these steps:
 1.  **Clone the repository**:
 
     ```bash
-    git clone https://github.com/yassir-jeraidi/full-calendar.git
-    cd full-calendar
+    git clone https://github.com/pranavik24/task-manager.git
+    cd task-manager
     ```
 
 2.  **Install dependencies**:
