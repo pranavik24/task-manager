@@ -2,14 +2,22 @@
 
 import type React from "react";
 import { createContext, useContext, useState, useMemo } from "react";
-import { addHours, subHours } from "date-fns";
+import {
+	addHours,
+	subHours,
+	addDays,
+	addWeeks,
+	addMonths,
+	addYears,
+	differenceInDays,
+	startOfDay,
+} from "date-fns";
 import { useLocalStorage } from "@/modules/components/calendar/hooks";
 import type { IEvent, IUser, ITask } from "@/modules/components/calendar/interfaces";
 import type {
 	TCalendarView,
 	TEventColor,
 } from "@/modules/components/calendar/types";
-import { subtractHours } from "../helpers";
 
 interface ICalendarContext {
 	selectedDate: Date;
@@ -52,6 +60,12 @@ const DEFAULT_SETTINGS: CalendarSettings = {
 	view: "day",
 	use24HourFormat: true,
 	agendaModeGroupBy: "date",
+};
+
+const normalizeTaskDurationHours = (hours?: number): number => {
+	if (typeof hours !== "number" || Number.isNaN(hours)) return 1;
+	const rounded = Math.round(hours * 2) / 2;
+	return Math.min(8, Math.max(0.5, rounded));
 };
 
 const CalendarContext = createContext({} as ICalendarContext);
@@ -139,7 +153,7 @@ export function CalendarProvider({
 
 		if (newColors.length > 0) {
 			const filtered = allEvents.filter((event) => {
-				const eventColor = event.color || "blue";
+				const eventColor = event.color || "Other";
 				return newColors.includes(eventColor);
 			});
 			setFilteredEvents(filtered);
@@ -166,6 +180,79 @@ export function CalendarProvider({
 	};
 
 	const addEvent = (event: IEvent) => {
+		// If the event contains recurrence info, expand into multiple occurrences
+		if (event.recurrence && (event.recurrence.count && event.recurrence.count > 1)) {
+			const freq = event.recurrence.freq;
+			const interval = event.recurrence.interval || 1;
+			const count = event.recurrence.count || 1;
+			const baseStart = new Date(event.startDate);
+			const baseEnd = new Date(event.endDate);
+			const occurrences: IEvent[] = [];
+
+			// If weekly and byweekday provided, generate by scanning days forward and honoring interval
+			if (event.recurrence && event.recurrence.freq === "weekly" && event.recurrence.byweekday && event.recurrence.byweekday.length > 0) {
+				const weekdays = (event.recurrence.byweekday || []) as number[]; // 0..6
+				let cursor = new Date(baseStart);
+				let created = 0;
+				while (created < count) {
+					const weekIndex = Math.floor(differenceInDays(cursor, baseStart) / 7);
+					const inIntervalWeek = weekIndex % interval === 0;
+					if (inIntervalWeek && weekdays.includes(cursor.getDay()) && cursor >= baseStart) {
+						const s = new Date(cursor);
+						const duration = baseEnd.getTime() - baseStart.getTime();
+						const e = new Date(s.getTime() + duration);
+						occurrences.push({
+							...event,
+							id: Math.floor(Math.random() * 1000000000),
+							startDate: s.toISOString(),
+							endDate: e.toISOString(),
+						});
+						created += 1;
+					}
+					cursor = addDays(cursor, 1);
+				}
+			} else {
+				for (let i = 0; i < count; i++) {
+					let s = new Date(baseStart);
+					let e = new Date(baseEnd);
+					const step = i * interval;
+					switch (freq) {
+						case "daily":
+							s = addDays(baseStart, step);
+							e = addDays(baseEnd, step);
+							break;
+						case "weekly":
+							s = addWeeks(baseStart, step);
+							e = addWeeks(baseEnd, step);
+							break;
+						case "monthly":
+							s = addMonths(baseStart, step);
+							e = addMonths(baseEnd, step);
+							break;
+						case "yearly":
+							s = addYears(baseStart, step);
+							e = addYears(baseEnd, step);
+							break;
+						default:
+							s = addDays(baseStart, step);
+							e = addDays(baseEnd, step);
+					}
+
+					occurrences.push({
+						...event,
+						id: Math.floor(Math.random() * 1000000000),
+						startDate: s.toISOString(),
+						endDate: e.toISOString(),
+					});
+				}
+			}
+
+			setAllEvents((prev) => [...prev, ...occurrences]);
+			setFilteredEvents((prev) => [...prev, ...occurrences]);
+			return;
+		}
+
+		// Non-recurring event
 		setAllEvents((prev) => [...prev, event]);
 		setFilteredEvents((prev) => [...prev, event]);
 	};
@@ -188,50 +275,179 @@ export function CalendarProvider({
 		setFilteredEvents((prev) => prev.filter((e) => e.id !== eventId));
 	};
 
-	const addTask = (task: ITask) => {
-		// Find the latest free 1-hour slot that ENDS BEFORE the requested dueDate.
-		// We scan backwards hour-by-hour from the requested time (rounded to hour)
-		// up to a MAX_ITER limit (one week by default).
-		const requested = new Date(task.dueDate);
+	const hasOverlap = (start: Date, end: Date, ignoreTaskId?: number) => {
+		for (const e of allEvents) {
+			const es = new Date(e.startDate);
+			const ee = new Date(e.endDate);
+			if (start < ee && es < end) return true;
+		}
 
-		// normalize to the start of the hour
+		for (const t of allTasks) {
+			if (ignoreTaskId !== undefined && t.id === ignoreTaskId) continue;
+			const ts = new Date(t.dueDate);
+			const te = addHours(ts, normalizeTaskDurationHours(t.estimatedHours));
+			if (start < te && ts < end) return true;
+		}
+
+		return false;
+	};
+
+	const findTaskSlot = (
+		requested: Date,
+		ignoreTaskId?: number,
+		durationHours = 1,
+	): Date | null => {
+		const dueDayStart = startOfDay(requested);
+		const oneHourMs = 60 * 60 * 1000;
+		const minGapBeforeDueMs = oneHourMs;
+		const taskDurationHours = normalizeTaskDurationHours(durationHours);
+		const preferredHours = [10, 11, 13, 14, 15, 16, 9, 12, 17];
+		const reasonableHours = [...preferredHours, 8, 18, 7, 19];
+		const allDayHours = Array.from({ length: 24 }, (_, i) => i);
+		const dueDayEnd = new Date(dueDayStart);
+		dueDayEnd.setDate(dueDayEnd.getDate() + 1);
+
+		const schoolEventsToday = allEvents.filter((event) => {
+			if (event.title !== "School") return false;
+			const start = new Date(event.startDate);
+			return start >= dueDayStart && start < dueDayEnd;
+		});
+
+		const schoolEndPlusOneHour =
+			schoolEventsToday.length > 0
+				? addHours(
+						schoolEventsToday
+							.map((event) => new Date(event.endDate))
+							.reduce((latest, current) =>
+								current > latest ? current : latest,
+							),
+						1,
+				  )
+				: null;
+
+		const isValidCandidate = (
+			hour: number,
+			options: {
+				mustBeBeforeDue: boolean;
+				enforceGapBeforeDue: boolean;
+				enforceSchoolGap: boolean;
+			},
+		) => {
+			const candidateStart = new Date(dueDayStart);
+			candidateStart.setHours(hour, 0, 0, 0);
+			const candidateEnd = addHours(candidateStart, taskDurationHours);
+
+			if (options.mustBeBeforeDue && candidateEnd > requested) return null;
+			if (
+				options.enforceGapBeforeDue &&
+				requested.getTime() - candidateEnd.getTime() < minGapBeforeDueMs
+			) {
+				return null;
+			}
+			if (
+				options.enforceSchoolGap &&
+				schoolEndPlusOneHour &&
+				candidateStart < schoolEndPlusOneHour
+			) {
+				return null;
+			}
+			if (hasOverlap(candidateStart, candidateEnd, ignoreTaskId)) return null;
+			return candidateStart;
+		};
+
+		const findCandidate = (
+			hours: number[],
+			options: {
+				mustBeBeforeDue: boolean;
+				enforceGapBeforeDue: boolean;
+				enforceSchoolGap: boolean;
+			},
+		) => {
+			for (const hour of hours) {
+				const candidate = isValidCandidate(hour, options);
+				if (candidate) return candidate;
+			}
+			return null;
+		};
+
+		const dueDayCandidate =
+			findCandidate(preferredHours, {
+				mustBeBeforeDue: true,
+				enforceGapBeforeDue: true,
+				enforceSchoolGap: true,
+			}) ??
+			findCandidate(reasonableHours, {
+				mustBeBeforeDue: true,
+				enforceGapBeforeDue: true,
+				enforceSchoolGap: true,
+			}) ??
+			findCandidate(preferredHours, {
+				mustBeBeforeDue: true,
+				enforceGapBeforeDue: false,
+				enforceSchoolGap: true,
+			}) ??
+			findCandidate(reasonableHours, {
+				mustBeBeforeDue: true,
+				enforceGapBeforeDue: false,
+				enforceSchoolGap: true,
+			}) ??
+			findCandidate(preferredHours, {
+				mustBeBeforeDue: true,
+				enforceGapBeforeDue: true,
+				enforceSchoolGap: false,
+			}) ??
+			findCandidate(reasonableHours, {
+				mustBeBeforeDue: true,
+				enforceGapBeforeDue: true,
+				enforceSchoolGap: false,
+			}) ??
+			findCandidate(preferredHours, {
+				mustBeBeforeDue: false,
+				enforceGapBeforeDue: false,
+				enforceSchoolGap: false,
+			}) ??
+			findCandidate(reasonableHours, {
+				mustBeBeforeDue: false,
+				enforceGapBeforeDue: false,
+				enforceSchoolGap: false,
+			});
+
+		if (dueDayCandidate) return dueDayCandidate;
+
+		// Last resort: search backward up to one week. Never return an overlapping slot.
 		let candidate = new Date(requested);
 		candidate.setMinutes(0, 0, 0);
-
-		// ensure the candidate hour ends before or at the requested due date
-		if (addHours(candidate, 1) > requested) {
+		if (addHours(candidate, taskDurationHours) > requested) {
 			candidate = subHours(candidate, 1);
 		}
 
-		const MAX_ITER = 24 * 7; // search up to one week backwards
+		const MAX_ITER = 24 * 7;
 		let iter = 0;
-
-		const overlaps = (start: Date, end: Date) => {
-			// check against events
-			for (const e of allEvents) {
-				const es = new Date(e.startDate);
-				const ee = new Date(e.endDate);
-				if (start < ee && es < end) return true;
-			}
-			// check against existing tasks (1-hour slots)
-			for (const t of allTasks) {
-				const ts = new Date(t.dueDate);
-				const te = addHours(new Date(t.dueDate), 1);
-				if (start < te && ts < end) return true;
-			}
-			return false;
-		};
-
 		while (iter < MAX_ITER) {
-			const candidateEnd = addHours(candidate, 1);
-			if (!overlaps(candidate, candidateEnd)) break;
+			const candidateEnd = addHours(candidate, taskDurationHours);
+			if (!hasOverlap(candidate, candidateEnd, ignoreTaskId)) return candidate;
 			candidate = subHours(candidate, 1);
 			iter += 1;
 		}
 
+		// Final fallback: same-day any-hour scan (to avoid returning an overlap).
+		return findCandidate(allDayHours, {
+			mustBeBeforeDue: false,
+			enforceGapBeforeDue: false,
+			enforceSchoolGap: false,
+		});
+	};
+
+	const addTask = (task: ITask) => {
+		const requested = new Date(task.dueDate);
+		const estimatedHours = normalizeTaskDurationHours(task.estimatedHours);
+		const candidate = findTaskSlot(requested, undefined, estimatedHours);
+		if (!candidate) throw new Error("No free slot available for task");
+
 		const taskToAdd: ITask = {
 			...task,
 			dueDate: candidate.toISOString(),
+			estimatedHours,
 		};
 
 		setAllTasks((prev) => [...prev, taskToAdd]);
@@ -239,9 +455,15 @@ export function CalendarProvider({
 	};
 
 	const updateTask = (task: ITask) => {
+		const requested = new Date(task.dueDate);
+		const estimatedHours = normalizeTaskDurationHours(task.estimatedHours);
+		const candidate = findTaskSlot(requested, task.id, estimatedHours);
+		if (!candidate) throw new Error("No free slot available for task");
+
 		const updated = {
 			...task,
-			dueDate: new Date(task.dueDate).toISOString(),
+			dueDate: candidate.toISOString(),
+			estimatedHours,
 		};
 
 		setAllTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
@@ -262,15 +484,17 @@ export function CalendarProvider({
 	};
 
 	// Merge tasks into the events list so the calendar UI (which consumes `events`)
-	// shows tasks as 1-hour blocks at their dueDate. Tasks remain separately
+	// shows tasks as estimated-hour blocks at their dueDate. Tasks remain separately
 	// available via `tasks` on the context for other UI.
 	const mergedEvents = useMemo(() => {
 		const taskAsEvents: IEvent[] = filteredTasks.map((t) => ({
 			id: t.id,
 			startDate: new Date(t.dueDate).toISOString(),
-			endDate: addHours(new Date(t.dueDate), 1).toISOString(),
+			endDate: addHours(
+				new Date(t.dueDate),
+				normalizeTaskDurationHours(t.estimatedHours),
+			).toISOString(),
 			title: t.title,
-			location: t.location,
 			color: t.color,
 			description: t.description,
 			user: t.user,

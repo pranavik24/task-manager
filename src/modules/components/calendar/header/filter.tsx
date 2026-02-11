@@ -7,21 +7,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Toggle } from "@/components/ui/toggle";
+import { COLORS } from "@/modules/components/calendar/constants";
 import { useCalendar } from "@/modules/components/calendar/contexts/calendar-context";
 import type { TEventColor } from "@/modules/components/calendar/types";
+import { EventBullet } from "@/modules/components/calendar/views/month-view/event-bullet";
 
 export default function FilterEvents() {
 	const { selectedColors, filterEventsBySelectedColors, clearFilter } =
 		useCalendar();
 
-	const colors: TEventColor[] = [
-		"blue",
-		"green",
-		"red",
-		"yellow",
-		"purple",
-		"orange",
-	];
+	const colors: TEventColor[] = COLORS;
 
 	return (
 		<DropdownMenu>
@@ -40,10 +35,8 @@ export default function FilterEvents() {
 							filterEventsBySelectedColors(color);
 						}}
 					>
-						<div
-							className={`size-3.5 rounded-full bg-${color}-600 dark:bg-${color}-700`}
-						/>
-						<span className="capitalize flex justify-center items-center gap-2">
+						<EventBullet color={color} />
+						<span className="flex justify-center items-center gap-2">
 							{color}
 							<span>
 								{selectedColors.includes(color) && (

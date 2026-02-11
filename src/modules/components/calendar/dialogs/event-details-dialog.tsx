@@ -1,7 +1,7 @@
 "use client";
 
 import { format, parseISO } from "date-fns";
-import { Calendar, Clock, Text, User } from "lucide-react";
+import { Calendar, Clock, Text } from "lucide-react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,12 +27,18 @@ interface IProps {
 export function EventDetailsDialog({ event, children }: IProps) {
 	const startDate = parseISO(event.startDate);
 	const endDate = parseISO(event.endDate);
-	const { use24HourFormat, removeEvent } = useCalendar();
+	const { use24HourFormat, removeEvent, removeTask, tasks } = useCalendar();
 
 	const deleteEvent = (eventId: number) => {
 		try {
-			removeEvent(eventId);
-			toast.success("Event deleted successfully.");
+			const isTask = tasks.some((task) => task.id === eventId);
+			if (isTask) {
+				removeTask(eventId);
+				toast.success("Task deleted successfully.");
+			} else {
+				removeEvent(eventId);
+				toast.success("Event deleted successfully.");
+			}
 		} catch {
 			toast.error("Error deleting event.");
 		}
@@ -48,16 +54,6 @@ export function EventDetailsDialog({ event, children }: IProps) {
 
 				<ScrollArea className="max-h-[80vh]">
 					<div className="space-y-4 p-4">
-						<div className="flex items-start gap-2">
-							<User className="mt-1 size-4 shrink-0 text-muted-foreground" />
-							<div>
-								<p className="text-sm font-medium">Responsible</p>
-								<p className="text-sm text-muted-foreground">
-									{event.user.name}
-								</p>
-							</div>
-						</div>
-
 						<div className="flex items-start gap-2">
 							<Calendar className="mt-1 size-4 shrink-0 text-muted-foreground" />
 							<div>

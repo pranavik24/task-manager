@@ -38,6 +38,157 @@ import type {
 
 const FORMAT_STRING = "MMM d, yyyy";
 
+function roundToHalfHour(value: number): number {
+	return Math.round(value * 2) / 2;
+}
+
+export function normalizeTaskDurationHours(hours?: number): number {
+	if (typeof hours !== "number" || Number.isNaN(hours)) return 1;
+	return Math.min(8, Math.max(0.5, roundToHalfHour(hours)));
+}
+
+export function estimateTaskDurationHours(
+	title: string,
+	description: string,
+): number {
+	const normalizedTitle = title.toLowerCase();
+	const normalizedDescription = description.toLowerCase();
+	const combined = `${normalizedTitle} ${normalizedDescription}`;
+	const words = combined
+		.split(/\s+/)
+		.map((word) => word.trim())
+		.filter(Boolean);
+	const titleWords = normalizedTitle
+		.split(/\s+/)
+		.map((word) => word.trim())
+		.filter(Boolean);
+	const descriptionWords = normalizedDescription
+		.split(/\s+/)
+		.map((word) => word.trim())
+		.filter(Boolean);
+
+	// If the user wrote an explicit estimate in the text, prefer it.
+	const explicitHours = combined.match(/(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours)\b/);
+	if (explicitHours) {
+		return normalizeTaskDurationHours(Number(explicitHours[1]));
+	}
+
+	const explicitMinutes = combined.match(/(\d+)\s*(m|min|mins|minute|minutes)\b/);
+	if (explicitMinutes) {
+		return normalizeTaskDurationHours(Number(explicitMinutes[1]) / 60);
+	}
+
+	let score = 1;
+
+	// Base complexity from amount of detail.
+	if (titleWords.length >= 3) score += 0.5;
+	if (descriptionWords.length >= 8) score += 0.5;
+	if (descriptionWords.length >= 20) score += 0.5;
+	if (words.length >= 35) score += 0.5;
+	if ((combined.match(/[,;]| and | then | after /g) || []).length >= 2) score += 0.5;
+
+	// Small, quick actions.
+	if (
+		/\b(call|email|reply|review|read|check|follow up|ping|confirm|schedule)\b/.test(
+			combined,
+		)
+	) {
+		score -= 0.5;
+	}
+
+	// Medium-complexity execution work.
+	if (
+		/\b(write|draft|plan|prepare|research|analyze|document|presentation)\b/.test(
+			combined,
+		)
+	) {
+		score += 1;
+	}
+
+	// Usually bigger delivery work.
+	if (
+		/\b(build|implement|develop|feature|integration|migrate|refactor|architecture|prototype|debug)\b/.test(
+			combined,
+		)
+	) {
+		score += 2;
+	}
+
+	// Extra complexity signals.
+	if (/\bmultiple|complex|deep|detailed|end-to-end|full\b/.test(combined)) {
+		score += 1;
+	}
+
+	// High-school coursework and deadlines.
+	if (
+		/\b(homework|assignment|worksheet|problem set|study guide|lab|lab report|essay|paper|project|presentation|slides|outline|annotate|annotation|reading log|chapter questions|dbq|frq|saq|mcq|poster|model|vocab|flashcards|notes|notecards|bibliography|citation|source analysis)\b/.test(
+			combined,
+		)
+	) {
+		score += 1;
+	}
+
+	if (
+		/\b(quiz|test|exam|midterm|final|ap exam|sat|act|study|revision|review notes|practice test|retake|unit test|chapter test|benchmark|state test|regents|psat|practice questions|review packet|memorize)\b/.test(
+			combined,
+		)
+	) {
+		score += 1.5;
+	}
+
+	// Applications and longer-form writing are usually larger chunks.
+	if (
+		/\b(college application|common app|personal statement|scholarship|essay draft|portfolio|supplemental essay|activities list|resume|brag sheet|recommendation letter|letter of recommendation|fafsa)\b/.test(
+			combined,
+		)
+	) {
+		score += 2;
+	}
+
+	// Typical quick school admin tasks.
+	if (
+		/\b(check gradebook|submit form|permission slip|email teacher|turn in|print|attendance office|late pass|hall pass|sign form|parent signature|bring form|upload screenshot|google classroom post|canvas post)\b/.test(
+			combined,
+		)
+	) {
+		score -= 0.5;
+	}
+
+	// Group coordination adds overhead.
+	if (/\b(group project|team project|with classmates|club meeting|student council|group chat|assign roles|peer review|partner work|meeting with team)\b/.test(combined)) {
+		score += 0.75;
+	}
+
+	// Extracurricular practices/games tend to be fixed-time blocks.
+	if (
+		/\b(practice|rehearsal|tryout|game|match|tournament|meet|training|film study|weight room|conditioning|scrimmage|warm up|band practice|orchestra practice|choir rehearsal|drama rehearsal|debate prep|mock trial|robotics build|yearbook meeting)\b/.test(
+			combined,
+		)
+	) {
+		score += 1;
+	}
+
+	// School support/planning tasks.
+	if (
+		/\b(tutoring|office hours|study hall|advisory|counselor meeting|college counselor|teacher meeting|make up work|missing work)\b/.test(
+			combined,
+		)
+	) {
+		score += 0.75;
+	}
+
+	// Creative/tech assignments often need focused blocks.
+	if (
+		/\b(video edit|edit video|recording|podcast|coding project|science fair|lab setup|build prototype|art piece|music composition)\b/.test(
+			combined,
+		)
+	) {
+		score += 1.25;
+	}
+
+	return normalizeTaskDurationHours(score);
+}
+
 export function rangeText(view: TCalendarView, date: Date): string {
 	let start: Date;
 	let end: Date;
@@ -259,6 +410,16 @@ export function getMonthCellEvents(
 	const eventsForDate = events.filter((event) => {
 		const eventStart = parseISO(event.startDate);
 		const eventEnd = parseISO(event.endDate);
+
+		// Avoid duplicate rendering of overnight short events (e.g., 10 PM to 6 AM)
+		// in month cells by showing them only on their start date.
+		const isOvernightShort =
+			!isSameDay(eventStart, eventEnd) &&
+			differenceInMinutes(eventEnd, eventStart) <= 12 * 60;
+		if (isOvernightShort) {
+			return isSameDay(dayStart, eventStart);
+		}
+
 		return (
 			(dayStart >= eventStart && dayStart <= eventEnd) ||
 			isSameDay(dayStart, eventStart) ||
@@ -392,28 +553,27 @@ export const getEventsForYear = (events: IEvent[], date: Date): IEvent[] => {
 
 export const getColorClass = (color: string): string => {
 	const colorClasses: Record<TEventColor, string> = {
-		red: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300",
-		yellow:
-			"border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-300",
-		green:
+		School:
+			"border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-300",
+		Homework:
+			"border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950 dark:text-cyan-300",
+		Extracurriculars:
 			"border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300",
-		blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300",
-		orange:
-			"border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-300",
-		purple:
-			"border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-300",
+		Work:
+			"border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300",
+		Other:
+			"border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
 	};
 	return colorClasses[color as TEventColor] || "";
 };
 
 export const getBgColor = (color: string): string => {
 	const colorClasses: Record<TEventColor, string> = {
-		red: "bg-red-400 dark:bg-red-600",
-		yellow: "bg-yellow-400 dark:bg-yellow-600",
-		green: "bg-green-400 dark:bg-green-600",
-		blue: "bg-blue-400 dark:bg-blue-600",
-		orange: "bg-orange-400 dark:bg-orange-600",
-		purple: "bg-purple-400 dark:bg-purple-600",
+		School: "bg-indigo-400 dark:bg-indigo-600",
+		Homework: "bg-cyan-400 dark:bg-cyan-600",
+		Extracurriculars: "bg-green-400 dark:bg-green-600",
+		Work: "bg-amber-400 dark:bg-amber-600",
+		Other: "bg-slate-400 dark:bg-slate-600",
 	};
 	return colorClasses[color as TEventColor] || "";
 };

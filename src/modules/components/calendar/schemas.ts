@@ -9,9 +9,20 @@ export const eventSchema = z.object({
 	endDate: z.date({
 		required_error: "End date is required",
 	}),
-	color: z.enum(["blue", "green", "red", "yellow", "purple", "orange"], {
+	color: z.enum(
+		["School", "Homework", "Extracurriculars", "Work", "Other"],
+		{
 		required_error: "Variant is required",
-	}),
+		},
+	),
+	// Simple recurrence fields for the UI: optional frequency and count
+	recurrenceFreq: z
+		.string()
+		.optional()
+		.refine((v) => !v || ["none", "daily", "weekly", "monthly", "yearly"].includes(v), {
+			message: "Invalid recurrence frequency",
+		}),
+	recurrenceCount: z.number().int().positive().optional(),
 });
 
 const taskSchema = eventSchema.extend({

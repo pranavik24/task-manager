@@ -1,4 +1,4 @@
-import {format, parseISO} from "date-fns";
+import { format, parseISO } from "date-fns";
 import type {FC} from "react";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {
@@ -15,19 +15,20 @@ import {EventDetailsDialog} from "@/modules/components/calendar/dialogs/event-de
 import {
     formatTime,
     getBgColor,
-    getColorClass, getEventsForMonth,
+    getColorClass,
+    getEventsForDay,
     getFirstLetters,
     toCapitalize,
 } from "@/modules/components/calendar/helpers";
 import {EventBullet} from "@/modules/components/calendar/views/month-view/event-bullet";
 
 export const AgendaEvents: FC = () => {
-    const {events, use24HourFormat, badgeVariant, agendaModeGroupBy, selectedDate} =
+    const {events, use24HourFormat, badgeVariant, agendaModeGroupBy} =
         useCalendar();
 
-    const monthEvents = getEventsForMonth(events, selectedDate)
+    const todayEvents = getEventsForDay(events, new Date());
 
-    const agendaEvents = Object.groupBy(monthEvents, (event) => {
+    const agendaEvents = Object.groupBy(todayEvents, (event) => {
         return agendaModeGroupBy === "date"
             ? format(parseISO(event.startDate), "yyyy-MM-dd")
             : event.color;
@@ -121,7 +122,7 @@ export const AgendaEvents: FC = () => {
                         ))}
                     </CommandGroup>
                 ))}
-                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandEmpty>No items for today.</CommandEmpty>
             </CommandList>
         </Command>
     );

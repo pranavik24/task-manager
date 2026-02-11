@@ -18,7 +18,7 @@ export async function Calendar() {
 	return (
 		<CalendarProvider events={events} users={users} view="month">
 			<DndProvider showConfirmation={false}>
-				<div className="w-full border rounded-xl">
+				<div className="w-full rounded-xl border bg-white shadow-sm">
 					<CalendarHeader />
 					<CalendarBody />
 				</div>

@@ -16,7 +16,7 @@ import { memo } from "react";
 
 const tabs = [
   {
-    name: "Agenda",
+    name: "Today's Agenda",
     value: "agenda",
     icon: () => <CalendarRange className="h-4 w-4" />,
   },
@@ -66,7 +66,7 @@ function Views() {
               onClick={() => setView(value as TCalendarView)}
               initial={false}
               animate={{
-                width: isActive ? 120 : 32,
+                width: isActive ? (value === "agenda" ? 170 : 120) : 32,
               }}
               transition={{
                 type: "tween",

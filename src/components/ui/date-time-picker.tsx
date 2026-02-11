@@ -1,6 +1,10 @@
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import type { ControllerRenderProps, UseFormReturn } from "react-hook-form";
+import type {
+	ControllerRenderProps,
+	FieldValues,
+	UseFormReturn,
+} from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -17,28 +21,44 @@ import {
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useCalendar } from "@/modules/components/calendar/contexts/calendar-context";
-import type { TEventFormData } from "@/modules/components/calendar/schemas";
 
-interface DatePickerProps {
-	form: UseFormReturn<TEventFormData>;
-	field: ControllerRenderProps<TEventFormData, "endDate" | "startDate">;
+interface DatePickerProps<TFieldValues extends FieldValues = FieldValues> {
+	// accept a flexible form/field types to support both events (start/end) and tasks (dueDate)
+	form: UseFormReturn<TFieldValues>;
+	field: ControllerRenderProps<TFieldValues>;
 }
 
-export function DateTimePicker({ form, field }: DatePickerProps) {
+export function DateTimePicker<TFieldValues extends FieldValues = FieldValues>({
+	form,
+	field,
+}: DatePickerProps<TFieldValues>) {
 	const { use24HourFormat } = useCalendar();
+	const fieldValue = field.value as unknown;
+	const selectedDate = fieldValue instanceof Date ? fieldValue : undefined;
+	const selectedHour = selectedDate ? selectedDate.getHours() : undefined;
+	const selectedAmPm = selectedHour !== undefined && selectedHour >= 12 ? "PM" : "AM";
 
 	function handleDateSelect(date: Date | undefined) {
 		if (date) {
-			form.setValue(field.name, date);
+			form.setValue(field.name, date as never);
 		}
 	}
 
 	function handleTimeChange(type: "hour" | "minute" | "ampm", value: string) {
-		const currentDate = form.getValues(field.name) || new Date();
+		const currentValue = form.getValues(field.name) as unknown;
+		const currentDate = currentValue instanceof Date ? currentValue : new Date();
 		const newDate = new Date(currentDate);
 
 		if (type === "hour") {
-			newDate.setHours(parseInt(value, 10));
+			const parsedHour = parseInt(value, 10);
+			if (use24HourFormat) {
+				newDate.setHours(parsedHour);
+			} else {
+				const currentHours = newDate.getHours();
+				const isPM = currentHours >= 12;
+				const normalizedHour = parsedHour % 12;
+				newDate.setHours(normalizedHour + (isPM ? 12 : 0));
+			}
 		} else if (type === "minute") {
 			newDate.setMinutes(parseInt(value, 10));
 		} else if (type === "ampm") {
@@ -50,7 +70,7 @@ export function DateTimePicker({ form, field }: DatePickerProps) {
 			}
 		}
 
-		form.setValue(field.name, newDate);
+		form.setValue(field.name, newDate as never);
 	}
 
 	return (
@@ -65,16 +85,20 @@ export function DateTimePicker({ form, field }: DatePickerProps) {
 							variant={"outline"}
 							className={cn(
 								"w-full pl-3 text-left font-normal",
-								!field.value && "text-muted-foreground",
+								!selectedDate && "text-muted-foreground",
 							)}
 						>
-							{field.value ? (
+							{selectedDate ? (
 								format(
-									field.value,
+									selectedDate,
 									use24HourFormat ? "MM/dd/yyyy HH:mm" : "MM/dd/yyyy hh:mm aa",
 								)
 							) : (
-								<span>MM/DD/YYYY hh:mm aa</span>
+								<span>
+									{use24HourFormat
+										? "MM/DD/YYYY HH:mm"
+										: "MM/DD/YYYY hh:mm aa"}
+								</span>
 							)}
 							<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
 						</Button>
@@ -84,31 +108,34 @@ export function DateTimePicker({ form, field }: DatePickerProps) {
 					<div className="sm:flex">
 						<Calendar
 							mode="single"
-							selected={field.value}
+							selected={selectedDate}
 							onSelect={handleDateSelect}
 							initialFocus
 						/>
 						<div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x">
 							<ScrollArea className="w-64 sm:w-auto">
 								<div className="flex sm:flex-col p-2">
-									{Array.from(
-										{ length: use24HourFormat ? 24 : 12 },
-										(_, i) => i,
+									{(use24HourFormat
+										? Array.from({ length: 24 }, (_, i) => i)
+										: [12, ...Array.from({ length: 11 }, (_, i) => i + 1)]
 									).map((hour) => (
 										<Button
 											key={hour}
 											size="icon"
 											variant={
-												field.value &&
-												field.value.getHours() % (use24HourFormat ? 24 : 12) ===
-													hour % (use24HourFormat ? 24 : 12)
+												selectedDate &&
+												(use24HourFormat
+													? selectedDate.getHours() === hour
+													: ((selectedDate.getHours() % 12) || 12) === hour)
 													? "default"
 													: "ghost"
 											}
 											className="sm:w-full shrink-0 aspect-square"
 											onClick={() => handleTimeChange("hour", hour.toString())}
 										>
-											{hour.toString().padStart(2, "0")}
+											{use24HourFormat
+												? hour.toString().padStart(2, "0")
+												: hour.toString()}
 										</Button>
 									))}
 								</div>
@@ -121,7 +148,7 @@ export function DateTimePicker({ form, field }: DatePickerProps) {
 											key={minute}
 											size="icon"
 											variant={
-												field.value && field.value.getMinutes() === minute
+												selectedDate && selectedDate.getMinutes() === minute
 													? "default"
 													: "ghost"
 											}
@@ -136,6 +163,28 @@ export function DateTimePicker({ form, field }: DatePickerProps) {
 								</div>
 								<ScrollBar orientation="horizontal" className="sm:hidden" />
 							</ScrollArea>
+							{!use24HourFormat ? (
+								<ScrollArea className="w-64 sm:w-auto">
+									<div className="flex sm:flex-col p-2">
+										{["AM", "PM"].map((meridiem) => (
+											<Button
+												key={meridiem}
+												size="icon"
+												variant={
+													selectedDate && selectedAmPm === meridiem
+														? "default"
+														: "ghost"
+												}
+												className="sm:w-full shrink-0 aspect-square"
+												onClick={() => handleTimeChange("ampm", meridiem)}
+											>
+												{meridiem}
+											</Button>
+										))}
+									</div>
+									<ScrollBar orientation="horizontal" className="sm:hidden" />
+								</ScrollArea>
+							) : null}
 						</div>
 					</div>
 				</PopoverContent>

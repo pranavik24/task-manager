@@ -192,4 +192,184 @@ const mockGenerator = (numberOfEvents: number): IEvent[] => {
 	return result;
 };
 
-export const CALENDAR_ITEMS_MOCK: IEvent[] = mockGenerator(0);
+const createEvent = (
+	id: number,
+	date: Date,
+	startHour: number,
+	startMinute: number,
+	endHour: number,
+	endMinute: number,
+	title: string,
+	location: string,
+	color: IEvent["color"],
+	description: string,
+): IEvent => {
+	const eventStart = new Date(date);
+	eventStart.setHours(startHour, startMinute, 0, 0);
+
+	const eventEnd = new Date(date);
+	eventEnd.setHours(endHour, endMinute, 0, 0);
+
+	return {
+		id,
+		startDate: eventStart.toISOString(),
+		endDate: eventEnd.toISOString(),
+		title,
+		location,
+		color,
+		description,
+		user: USERS_MOCK[0],
+	};
+};
+
+const hashDate = (date: Date): number => {
+	const y = date.getFullYear();
+	const m = date.getMonth() + 1;
+	const d = date.getDate();
+	return y * 10000 + m * 100 + d;
+};
+
+const pickByDate = <T,>(date: Date, items: T[]): T => {
+	return items[hashDate(date) % items.length];
+};
+
+const generateSchoolAndActivities = (
+	pastWeeks = 26,
+	futureWeeks = 26,
+): IEvent[] => {
+	const result: IEvent[] = [];
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+	const startDate = new Date(today);
+	startDate.setDate(today.getDate() - pastWeeks * 7);
+	const endDate = new Date(today);
+	endDate.setDate(today.getDate() + futureWeeks * 7);
+	let currentId = 1;
+
+	for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+		const currentDate = new Date(date);
+		const dayOfWeek = date.getDay();
+		const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+
+		if (isWeekday) {
+			result.push(
+				createEvent(
+					currentId++,
+					currentDate,
+					7,
+					40,
+					14,
+					30,
+					"School",
+					"School",
+					"School",
+					"Weekday school schedule.",
+				),
+			);
+		}
+
+		// Sports games on Friday evenings
+		if (dayOfWeek === 5) {
+			const gameTitle = pickByDate(currentDate, [
+				"Travel Game",
+				"At Home Game",
+				"Homecoming Game",
+				"Rivalry Game",
+			]);
+			const gameTime = pickByDate(currentDate, [
+				{ startHour: 18, startMinute: 0, endHour: 20, endMinute: 0 },
+				{ startHour: 18, startMinute: 30, endHour: 20, endMinute: 30 },
+				{ startHour: 19, startMinute: 0, endHour: 21, endMinute: 0 },
+			]);
+
+			result.push(
+				createEvent(
+					currentId++,
+					currentDate,
+					gameTime.startHour,
+					gameTime.startMinute,
+					gameTime.endHour,
+					gameTime.endMinute,
+					gameTitle,
+					"School Field",
+					"Extracurriculars",
+					"Evening game with the team.",
+				),
+			);
+		}
+
+		// Sports practice on some weekday afternoons (Tue/Thu)
+		if (dayOfWeek === 2 || dayOfWeek === 4) {
+			const practiceTitle = pickByDate(currentDate, [
+				"Skills & Drills",
+				"Conditioning Practice",
+				"Strategy Session",
+				"Team Practice",
+			]);
+			const practiceTime = pickByDate(currentDate, [
+				{ startHour: 15, startMinute: 30, endHour: 17, endMinute: 0 },
+				{ startHour: 15, startMinute: 45, endHour: 17, endMinute: 15 },
+				{ startHour: 16, startMinute: 0, endHour: 17, endMinute: 30 },
+			]);
+
+			result.push(
+				createEvent(
+					currentId++,
+					currentDate,
+					practiceTime.startHour,
+					practiceTime.startMinute,
+					practiceTime.endHour,
+					practiceTime.endMinute,
+					practiceTitle,
+					"Gym",
+					"Extracurriculars",
+					"Afternoon training block.",
+				),
+			);
+		}
+
+		// Weekend get-togethers (occasional, not every week)
+		if (dayOfWeek === 6 || dayOfWeek === 0) {
+			const weekendSeed = hashDate(currentDate);
+			const includeGetTogether = weekendSeed % 3 === 0;
+			if (!includeGetTogether) continue;
+
+			const socialTitle = pickByDate(currentDate, [
+				"Crew Hangout",
+				"Weekend Meetup",
+				"Pizza & Game Night",
+				"Park Catch-Up",
+			]);
+			const socialLocation = pickByDate(currentDate, [
+				"Community Center",
+				"Downtown Park",
+				"Friend's House",
+				"City Rec Hall",
+			]);
+			const socialTime = pickByDate(currentDate, [
+				{ startHour: 14, startMinute: 30, endHour: 16, endMinute: 0 },
+				{ startHour: 16, startMinute: 0, endHour: 18, endMinute: 0 },
+				{ startHour: 17, startMinute: 30, endHour: 19, endMinute: 30 },
+			]);
+
+			result.push(
+				createEvent(
+					currentId++,
+					currentDate,
+					socialTime.startHour,
+					socialTime.startMinute,
+					socialTime.endHour,
+					socialTime.endMinute,
+					socialTitle,
+					socialLocation,
+					"Other",
+					"Casual weekend social plan.",
+				),
+			);
+		}
+	}
+
+	return result;
+};
+
+export const CALENDAR_ITEMS_MOCK: IEvent[] = generateSchoolAndActivities();

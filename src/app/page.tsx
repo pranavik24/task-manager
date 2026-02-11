@@ -1,21 +1,30 @@
-import { ArrowUpRight, CalendarIcon, GithubIcon, LinkIcon } from "lucide-react";
-import Link from "next/link";
+import Image from "next/image";
 import React, { Suspense } from "react";
 import { Calendar } from "@/modules/components/calendar/calendar";
 import { CalendarSkeleton } from "@/modules/components/calendar/skeletons/calendar-skeleton";
 
 export default function Home() {
 	return (
-		<main className="flex max-h-screen my-10 flex-col">
+		<main
+			className="flex min-h-screen flex-col bg-cover bg-center bg-no-repeat"
+			style={{ backgroundImage: "url('/octomind_website_background.png')" }}
+		>
 			<div className="container p-4 md:mx-auto">
 				<div className="flex items-center justify-between">
 					<div className="mb-4">
-						<div className="flex items-center gap-2">
-							<div className="flex size-12 items-center justify-center rounded-full border p-3">
-								<CalendarIcon className="size-6 text-t-secondary" />
+						<div className="flex items-center gap-3">
+							<div className="flex size-24 items-center justify-center overflow-hidden rounded-full border">
+								<Image
+									src="/octomind_logo_mark.png"
+									alt="Octomind logo"
+									width={96}
+									height={96}
+									className="size-full object-cover"
+									priority
+								/>
 							</div>
 							<div className="space-y-1">
-								<p className="text-lg font-medium leading-6"> Octomind Calendar </p>
+								<p className="text-3xl font-semibold leading-tight"> Octomind Calendar </p>
 								{/* <div className="text-sm text-t-secondary">
 									Built with Next.js and Shadcn UI/Tailwind css by{" "}
 									<Link

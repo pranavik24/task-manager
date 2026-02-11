@@ -168,7 +168,7 @@ export function Settings() {
 						}
 					>
 						<DropdownMenuRadioItem value="date">Date</DropdownMenuRadioItem>
-						<DropdownMenuRadioItem value="color">Color</DropdownMenuRadioItem>
+						<DropdownMenuRadioItem value="color">Category</DropdownMenuRadioItem>
 					</DropdownMenuRadioGroup>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>

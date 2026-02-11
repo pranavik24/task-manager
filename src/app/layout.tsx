@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-	title: "Full Calendar",
+	title: "Octomind Calender",
 	description: "Calendar page",
+	icons: {
+		icon: "/octomind_logo_mark.png",
+		shortcut: "/octomind_logo_mark.png",
+		apple: "/octomind_logo_mark.png",
+	},
 	authors: [
 		{
 			name: "Jeraidi Yassir",
@@ -28,9 +35,17 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en">
+		<html>
 			<body>
-				{children}
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="system"
+					enableSystem
+					disableTransitionOnChange
+				>
+					{children}
+					<Toaster />
+				</ThemeProvider>
 			</body>
 		</html>
   )
