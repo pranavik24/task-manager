@@ -1,5 +1,5 @@
 import { COLORS } from "@/modules/components/calendar/constants";
-import type { IEvent, IUser } from "@/modules/components/calendar/interfaces";
+import type { IEvent, ITask, IUser } from "@/modules/components/calendar/interfaces";
 
 export const USERS_MOCK: IUser[] = [
 	{
@@ -373,3 +373,161 @@ const generateSchoolAndActivities = (
 };
 
 export const CALENDAR_ITEMS_MOCK: IEvent[] = generateSchoolAndActivities();
+
+const TASK_TEMPLATES: Array<{
+	title: string;
+	description: string;
+	color: ITask["color"];
+	estimatedHours: number;
+}> = [
+	{
+		title: "Finish algebra problem set",
+		description: "Complete odd-numbered questions and check steps.",
+		color: "Homework",
+		estimatedHours: 1.5,
+	},
+	{
+		title: "Study biology chapter quiz",
+		description: "Review flashcards and practice 20 questions.",
+		color: "Studying",
+		estimatedHours: 2,
+	},
+	{
+		title: "Draft English essay body paragraph",
+		description: "Write one solid paragraph with quotes and citations.",
+		color: "Homework",
+		estimatedHours: 1.5,
+	},
+	{
+		title: "Review history notes for unit test",
+		description: "Summarize key dates and causes/effects.",
+		color: "Studying",
+		estimatedHours: 1.5,
+	},
+	{
+		title: "Prepare debate club argument points",
+		description: "Collect sources and build opening statement.",
+		color: "Extracurriculars",
+		estimatedHours: 1.5,
+	},
+	{
+		title: "Practice SAT math timed section",
+		description: "Do one timed module and review mistakes.",
+		color: "Studying",
+		estimatedHours: 2.5,
+	},
+	{
+		title: "Complete chemistry lab report edits",
+		description: "Revise conclusion and clean up data table formatting.",
+		color: "Homework",
+		estimatedHours: 1,
+	},
+	{
+		title: "Part-time shift checklist",
+		description: "Confirm shift tasks and prep for tomorrow.",
+		color: "Work",
+		estimatedHours: 1,
+	},
+	{
+		title: "Organize planner and missing assignments",
+		description: "Check portals and list priorities for the week.",
+		color: "Other",
+		estimatedHours: 0.5,
+	},
+	{
+		title: "Community service log update",
+		description: "Submit volunteer hours and write brief reflection.",
+		color: "Other",
+		estimatedHours: 1,
+	},
+];
+
+const overlapsRange = (
+	start: Date,
+	end: Date,
+	existingStart: Date,
+	existingEnd: Date,
+): boolean => start < existingEnd && existingStart < end;
+
+const hasConflict = (start: Date, end: Date, existingTasks: ITask[]): boolean => {
+	for (const event of CALENDAR_ITEMS_MOCK) {
+		const eventStart = new Date(event.startDate);
+		const eventEnd = new Date(event.endDate);
+		if (overlapsRange(start, end, eventStart, eventEnd)) return true;
+	}
+
+	for (const task of existingTasks) {
+		const taskStart = new Date(task.dueDate);
+		const durationMs = (task.estimatedHours ?? 1) * 60 * 60 * 1000;
+		const taskEnd = new Date(taskStart.getTime() + durationMs);
+		if (overlapsRange(start, end, taskStart, taskEnd)) return true;
+	}
+
+	return false;
+};
+
+const findAvailableTaskStart = (
+	day: Date,
+	durationHours: number,
+	isWeekend: boolean,
+	existingTasks: ITask[],
+): Date | null => {
+	const durationMs = durationHours * 60 * 60 * 1000;
+	const preferredHours = isWeekend ? [10, 13, 16, 19] : [16, 18, 20, 21];
+	const fallbackHours = Array.from({ length: 17 }, (_, i) => i + 6).filter(
+		(h) => !preferredHours.includes(h),
+	);
+	const candidateHours = [...preferredHours, ...fallbackHours];
+
+	for (const hour of candidateHours) {
+		const start = new Date(day);
+		start.setHours(hour, 0, 0, 0);
+		const end = new Date(start.getTime() + durationMs);
+		if (end.getDate() !== start.getDate()) continue;
+		if (!hasConflict(start, end, existingTasks)) return start;
+	}
+
+	return null;
+};
+
+const generateMonthlyTasks = (): ITask[] => {
+	const tasks: ITask[] = [];
+	const now = new Date();
+	const start = new Date(now.getFullYear(), now.getMonth(), 1);
+	const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+	let id = 100000;
+
+	for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+		const day = new Date(date);
+		const dayOfWeek = day.getDay();
+		const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+		// Reduced density: weekdays get one task, weekends get a task only on alternating days.
+		const tasksPerDay = isWeekend ? (hashDate(day) % 2 === 0 ? 1 : 0) : 1;
+		for (let slot = 0; slot < tasksPerDay; slot++) {
+			const templateIndex = (hashDate(day) + slot) % TASK_TEMPLATES.length;
+			const template = TASK_TEMPLATES[templateIndex];
+			const dueDate = findAvailableTaskStart(
+				day,
+				template.estimatedHours,
+				isWeekend,
+				tasks,
+			);
+			if (!dueDate) continue;
+
+			tasks.push({
+				id: id++,
+				dueDate: dueDate.toISOString(),
+				estimatedHours: template.estimatedHours,
+				title: template.title,
+				description: template.description,
+				color: template.color,
+				user: USERS_MOCK[(hashDate(day) + slot) % USERS_MOCK.length],
+			});
+		}
+	}
+
+	return tasks;
+};
+
+export const TASK_ITEMS_MOCK: ITask[] = generateMonthlyTasks();

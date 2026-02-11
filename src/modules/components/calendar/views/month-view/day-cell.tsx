@@ -39,6 +39,8 @@ export const dayCellVariants = cva("text-white", {
       Other: "bg-slate-600 dark:bg-slate-500 hover:bg-slate-700 dark:hover:bg-slate-400",
       Homework:
         "bg-cyan-600 dark:bg-cyan-500 hover:bg-cyan-700 dark:hover:bg-cyan-400",
+      Studying:
+        "bg-violet-600 dark:bg-violet-500 hover:bg-violet-700 dark:hover:bg-violet-400",
       Work:
         "bg-amber-600 dark:bg-amber-500 hover:bg-amber-700 dark:hover:bg-amber-400",
     },

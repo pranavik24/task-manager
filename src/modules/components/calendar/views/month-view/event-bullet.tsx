@@ -9,6 +9,7 @@ const eventBulletVariants = cva("size-2 rounded-full", {
 		color: {
 			School: "bg-indigo-600 dark:bg-indigo-500",
 			Homework: "bg-cyan-600 dark:bg-cyan-500",
+			Studying: "bg-violet-600 dark:bg-violet-500",
 			Extracurriculars: "bg-green-600 dark:bg-green-500",
 			Work: "bg-amber-600 dark:bg-amber-500",
 			Other: "bg-slate-600 dark:bg-slate-500",

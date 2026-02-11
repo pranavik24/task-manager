@@ -24,6 +24,8 @@ const calendarWeekEventCardVariants = cva(
 					"border-slate-200 bg-slate-100/50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
 				Homework:
 					"border-cyan-200 bg-cyan-100/50 text-cyan-700 hover:bg-cyan-100 dark:border-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-300 dark:hover:bg-cyan-950",
+				Studying:
+					"border-violet-200 bg-violet-100/50 text-violet-700 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-300 dark:hover:bg-violet-950",
 				Work:
 					"border-amber-200 bg-amber-100/50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300 dark:hover:bg-amber-950",
 
@@ -36,6 +38,8 @@ const calendarWeekEventCardVariants = cva(
 					"border-border bg-card text-foreground hover:bg-accent [&_svg]:fill-slate-600 dark:[&_svg]:fill-slate-500",
 				"Work-dot":
 					"border-border bg-card text-foreground hover:bg-accent [&_svg]:fill-amber-600 dark:[&_svg]:fill-amber-500",
+				"Studying-dot":
+					"border-border bg-card text-foreground hover:bg-accent [&_svg]:fill-violet-600 dark:[&_svg]:fill-violet-500",
 				"Homework-dot":
 					"border-border bg-card text-foreground hover:bg-accent [&_svg]:fill-cyan-600 dark:[&_svg]:fill-cyan-500",
 			},

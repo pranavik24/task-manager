@@ -11,7 +11,7 @@ export default function Home() {
 		>
 			<div className="container p-4 md:mx-auto">
 				<div className="flex items-center justify-between">
-					<div className="mb-4">
+					<div className="mt-4 mb-4">
 						<div className="flex items-center gap-3">
 							<div className="flex size-24 items-center justify-center overflow-hidden rounded-full border">
 								<Image
@@ -23,8 +23,8 @@ export default function Home() {
 									priority
 								/>
 							</div>
-							<div className="space-y-1">
-								<p className="text-3xl font-semibold leading-tight"> Octomind Calendar </p>
+							<div className="space-y-1 pt-2">
+								<p className="text-5xl md:text-6xl font-semibold leading-tight"> Octomind Calendar </p>
 								{/* <div className="text-sm text-t-secondary">
 									Built with Next.js and Shadcn UI/Tailwind css by{" "}
 									<Link

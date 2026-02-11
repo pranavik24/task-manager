@@ -10,7 +10,7 @@ export const eventSchema = z.object({
 		required_error: "End date is required",
 	}),
 	color: z.enum(
-		["School", "Homework", "Extracurriculars", "Work", "Other"],
+		["School", "Homework", "Studying", "Extracurriculars", "Work", "Other"],
 		{
 		required_error: "Variant is required",
 		},

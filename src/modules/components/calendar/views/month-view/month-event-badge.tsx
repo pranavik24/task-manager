@@ -23,6 +23,8 @@ const eventBadgeVariants = cva(
 					"border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
 				Homework:
 					"border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950 dark:text-cyan-300",
+				Studying:
+					"border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-300",
 				Work:
 					"border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300",
 
@@ -32,6 +34,7 @@ const eventBadgeVariants = cva(
 					"bg-bg-secondary text-t-primary [&_svg]:fill-green-600",
 				"Other-dot": "bg-bg-secondary text-t-primary [&_svg]:fill-slate-600",
 				"Work-dot": "bg-bg-secondary text-t-primary [&_svg]:fill-amber-600",
+				"Studying-dot": "bg-bg-secondary text-t-primary [&_svg]:fill-violet-600",
 				"Homework-dot": "bg-bg-secondary text-t-primary [&_svg]:fill-cyan-600",
 			},
 			multiDayPosition: {

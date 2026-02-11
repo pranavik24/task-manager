@@ -74,12 +74,14 @@ export function CalendarProvider({
 	children,
 	users,
 	events,
+	tasks = [],
 	badge = "colored",
 	view = "day",
 }: {
 	children: React.ReactNode;
 	users: IUser[];
 	events: IEvent[];
+	tasks?: ITask[];
 	view?: TCalendarView;
 	badge?: "dot" | "colored";
 }) {
@@ -114,8 +116,8 @@ export function CalendarProvider({
 	const [allEvents, setAllEvents] = useState<IEvent[]>(events || []);
 	const [filteredEvents, setFilteredEvents] = useState<IEvent[]>(events || []);
 
-	const [allTasks, setAllTasks] = useState<ITask[]>([]);
-	const [filteredTasks, setFilteredTasks] = useState<ITask[]>([]);
+	const [allTasks, setAllTasks] = useState<ITask[]>(tasks || []);
+	const [filteredTasks, setFilteredTasks] = useState<ITask[]>(tasks || []);
 
 	const updateSettings = (newPartialSettings: Partial<CalendarSettings>) => {
 		setSettings({

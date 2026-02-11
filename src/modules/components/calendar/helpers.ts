@@ -557,6 +557,8 @@ export const getColorClass = (color: string): string => {
 			"border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-300",
 		Homework:
 			"border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950 dark:text-cyan-300",
+		Studying:
+			"border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-300",
 		Extracurriculars:
 			"border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300",
 		Work:
@@ -571,6 +573,7 @@ export const getBgColor = (color: string): string => {
 	const colorClasses: Record<TEventColor, string> = {
 		School: "bg-indigo-400 dark:bg-indigo-600",
 		Homework: "bg-cyan-400 dark:bg-cyan-600",
+		Studying: "bg-violet-400 dark:bg-violet-600",
 		Extracurriculars: "bg-green-400 dark:bg-green-600",
 		Work: "bg-amber-400 dark:bg-amber-600",
 		Other: "bg-slate-400 dark:bg-slate-600",
