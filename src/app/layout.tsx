@@ -7,9 +7,9 @@ export const metadata: Metadata = {
 	title: "Octomind Calender",
 	description: "Calendar page",
 	icons: {
-		icon: "/octomind_logo_mark.png",
-		shortcut: "/octomind_logo_mark.png",
-		apple: "/octomind_logo_mark.png",
+		icon: "/final.OctoMind.transparent.png",
+		shortcut: "/final.OctoMind.transparent.png",
+		apple: "/final.OctoMind.transparent.png",
 	},
 	authors: [
 		{

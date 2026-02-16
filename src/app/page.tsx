@@ -15,7 +15,7 @@ export default function Home() {
 						<div className="flex items-center gap-3">
 							<div className="flex size-24 items-center justify-center overflow-hidden rounded-full border">
 								<Image
-									src="/octomind_logo_mark.png"
+									src="/final.OctoMind.transparent.png"
 									alt="Octomind logo"
 									width={96}
 									height={96}
